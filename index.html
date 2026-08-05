@@ -175,6 +175,7 @@
     animation:pop .2s ease;
   }
   @keyframes pop{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes spin{to{transform:rotate(360deg)}}
   .modal-header{
     padding:18px 22px;border-bottom:1px solid var(--line);
     display:flex;justify-content:space-between;align-items:center;
@@ -1543,22 +1544,26 @@ async function testCloudConnection(){
   }
 }
 // 上传本地数据到云端
+let _cloudBusy=false; // 防重复点击锁
 async function cloudPush(){
+  if(_cloudBusy){toast('正在处理中，请稍候...','');return}
   const cfg=getCloudConfig();
   if(!cfg.token){toast('请先配置云同步','error');return}
   if(ORDERS.length===0){toast('本地无数据可上传','error');return}
-  toast('正在上传到 GitHub...','');
+  _cloudBusy=true;
+  showCloudProgress('正在上传到 GitHub...',10);
   try{
-    // 先校验 token 和仓库是否可访问
+    showCloudProgress('校验仓库权限...',25);
     const testR=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`,{
       headers:{'Authorization':'token '+cfg.token,'Accept':'application/vnd.github+json'}
     });
-    if(testR.status===401){toast('Token 无效或已过期，请重新生成','error');return}
-    if(testR.status===404){toast('仓库不存在或 Token 无权访问。请检查用户名/仓库名拼写','error');return}
-    if(!testR.ok){toast('仓库访问失败：HTTP '+testR.status,'error');return}
+    if(testR.status===401){toast('Token 无效或已过期，请重新生成','error');hideCloudProgress();_cloudBusy=false;return}
+    if(testR.status===404){toast('仓库不存在或 Token 无权访问。请检查用户名/仓库名拼写','error');hideCloudProgress();_cloudBusy=false;return}
+    if(!testR.ok){toast('仓库访问失败：HTTP '+testR.status,'error');hideCloudProgress();_cloudBusy=false;return}
     const repoInfo=await testR.json();
     const branch=repoInfo.default_branch||'main';
 
+    showCloudProgress('准备订单数据...',50);
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(ORDERS,null,2))));
     // 先获取 sha（如果文件存在）
     let sha=null;
@@ -1568,6 +1573,7 @@ async function cloudPush(){
       });
       if(r.ok){const j=await r.json();sha=j.sha}
     }catch{}
+    showCloudProgress('上传中...',75);
     const body={message:'Sync orders '+new Date().toISOString(),content,branch};
     if(sha)body.sha=sha;
     const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/orders.json`,{
@@ -1579,35 +1585,74 @@ async function cloudPush(){
       const e=await r.json().catch(()=>({message:'未知错误'}));
       throw new Error(e.message||('HTTP '+r.status));
     }
+    showCloudProgress('完成！',100);
     toast('已上传 '+ORDERS.length+' 条订单到云端','success');
+    setTimeout(hideCloudProgress,800);
   }catch(err){
     toast('上传失败：'+err.message,'error');
+    hideCloudProgress();
   }
+  _cloudBusy=false;
 }
 // 从云端拉取数据到本地
 async function cloudPull(){
+  if(_cloudBusy){toast('正在处理中，请稍候...','');return}
   const cfg=getCloudConfig();
   if(!cfg.token){toast('请先配置云同步','error');return}
-  toast('正在从 GitHub 拉取...','');
+  _cloudBusy=true;
+  showCloudProgress('正在从 GitHub 拉取...',20);
   try{
+    showCloudProgress('连接仓库...',40);
     const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/orders.json`,{
       headers:{'Authorization':'token '+cfg.token,'Accept':'application/vnd.github+json'}
     });
-    if(r.status===404){toast('云端暂无数据，请先上传','error');return}
+    if(r.status===404){toast('云端暂无数据，请先上传','error');hideCloudProgress();_cloudBusy=false;return}
     if(!r.ok)throw new Error('HTTP '+r.status);
+    showCloudProgress('读取数据...',70);
     const j=await r.json();
     const content=JSON.parse(decodeURIComponent(escape(atob(j.content))));
     if(!Array.isArray(content))throw new Error('数据格式错误');
     if(ORDERS.length>0){
-      if(!confirm('本地已有 '+ORDERS.length+' 条订单，云端有 '+content.length+' 条。\n确定用云端数据覆盖本地吗？')){toast('已取消','');return}
+      if(!confirm('本地已有 '+ORDERS.length+' 条订单，云端有 '+content.length+' 条。\n确定用云端数据覆盖本地吗？')){
+        toast('已取消','');hideCloudProgress();_cloudBusy=false;return;
+      }
     }
     ORDERS=content.map(o=>{ensureChecks(o);ensureEvidence(o);return o});
     saveOrders(ORDERS);
     renderBoard();
+    showCloudProgress('完成！',100);
     toast('已从云端拉取 '+ORDERS.length+' 条订单','success');
+    setTimeout(hideCloudProgress,800);
   }catch(err){
     toast('拉取失败：'+err.message,'error');
+    hideCloudProgress();
   }
+  _cloudBusy=false;
+}
+// 进度条 UI
+function showCloudProgress(text,pct){
+  let box=document.getElementById('cloudProgressBox');
+  if(!box){
+    box=document.createElement('div');
+    box.id='cloudProgressBox';
+    box.style.cssText='position:fixed;top:80px;right:20px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:70;min-width:240px;font-size:13px';
+    document.body.appendChild(box);
+  }
+  box.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="spinner" style="width:16px;height:16px;border:2px solid var(--blue-200);border-top-color:var(--blue-600);border-radius:50%;animation:spin .8s linear infinite;display:inline-block"></span>
+      <span>${text}</span>
+    </div>
+    <div style="background:var(--blue-100);border-radius:6px;height:8px;overflow:hidden">
+      <div id="cloudProgressBar" style="background:linear-gradient(90deg,var(--blue-500),var(--blue-600));height:100%;width:${pct}%;transition:width .3s;border-radius:6px"></div>
+    </div>
+    <div style="text-align:right;margin-top:4px;font-size:11px;color:var(--muted)">${pct}%</div>
+  `;
+  box.style.display='block';
+}
+function hideCloudProgress(){
+  const box=document.getElementById('cloudProgressBox');
+  if(box)box.style.display='none';
 }
 // 启动时更新按钮状态
 updateCloudBtn();
