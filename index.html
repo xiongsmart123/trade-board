@@ -318,6 +318,7 @@
     </div>
     <button class="btn btn-ghost" id="btnLink" onclick="linkLocalFile()" title="绑定本地文件，数据自动保存到该文件">🔗 绑定本地文件</button>
     <button class="btn btn-ghost" id="btnCloud" onclick="cloudSync()" title="同步订单数据到 GitHub 云端">☁️ 云同步</button>
+    <button class="btn btn-ghost" id="btnPublish" onclick="publishHtml()" title="把本地 HTML 上传到 GitHub Pages，更新网站">🚀 发布</button>
     <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📂 导入</button>
     <button class="btn btn-ghost" onclick="exportData()">⬇ 导出</button>
     <button class="btn btn-primary" onclick="openForm()">＋ 新建订单</button>
@@ -1383,6 +1384,7 @@ function openCloudSetup(){
           </div>
         </div>
         <div class="modal-footer">
+          <button class="btn btn-ghost" id="btnClearCloud" onclick="clearCloudConfig()" style="color:var(--red);margin-right:auto;display:none">🗑 清空配置</button>
           <button class="btn btn-ghost" onclick="document.getElementById('cloudMask').remove()">取消</button>
           <button class="btn btn-ghost" onclick="testCloudConnection()" style="color:var(--blue-600)">🔌 测试连接</button>
           <button class="btn btn-primary" onclick="saveCloudConfigFromForm()">保存配置</button>
@@ -1391,12 +1393,111 @@ function openCloudSetup(){
     </div>
   `;
   document.body.insertAdjacentHTML('beforeend',html);
+  // 已有配置时显示"清空"按钮
+  if(cfg.token){
+    const b=document.getElementById('btnClearCloud');
+    if(b)b.style.display='inline-block';
+    // Token 框显示占位提示，提示用户可重新输入
+    const tk=document.getElementById('cloud_token');
+    tk.value=''; // 清空显示，强制用户重新输入
+    tk.placeholder='（已保存，留空则保留原值；输入新值则覆盖）输入 ghp_xxxxxxxx...';
+    tk.dataset.keepOld='1';
+  }
+}
+function clearCloudConfig(){
+  if(!confirm('确定清空云同步配置吗？本地数据不受影响，仅清除 Token 和仓库地址。'))return;
+  localStorage.removeItem(CLOUD_KEY);
+  updateCloudBtn();
+  document.getElementById('cloudMask').remove();
+  toast('已清空云同步配置','success');
+}
+/* ============ 一键发布 HTML 到 GitHub Pages ============ */
+function publishHtml(){
+  const cfg=getCloudConfig();
+  if(!cfg.token||!cfg.owner||!cfg.repo){
+    toast('请先配置云同步（点 ☁️ 云同步）','error');
+    return;
+  }
+  // 弹窗：选择本地 HTML 文件 + 确认
+  const html=`
+    <div class="modal-mask show" id="pubMask" onclick="if(event.target.id==='pubMask')this.remove()">
+      <div class="modal" style="max-width:460px">
+        <div class="modal-header">
+          <h3>🚀 发布到 GitHub Pages</h3>
+          <button class="modal-close" onclick="document.getElementById('pubMask').remove()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;color:#1e40af;line-height:1.6">
+            把本地最新的 <b>index.html</b> 上传到 <b>${cfg.owner}/${cfg.repo}</b> 仓库，<br>
+            上传后约 1-2 分钟 GitHub Pages 会自动更新。
+          </div>
+          <div style="margin-bottom:10px;font-size:13px;color:var(--muted)">
+            步骤：点击下面按钮 → 选择本地的 <code>index.html</code> 文件 → 自动上传
+          </div>
+          <input type="file" id="pubFile" accept=".html,.htm" style="display:none">
+          <button class="btn btn-primary" onclick="document.getElementById('pubFile').click()" style="width:100%;padding:12px;font-size:14px">
+            📁 选择 index.html 文件
+          </button>
+          <div id="pubStatus" style="margin-top:12px;font-size:13px;color:var(--muted);text-align:center"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="document.getElementById('pubMask').remove()">关闭</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend',html);
+  document.getElementById('pubFile').onchange=async (e)=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    const status=document.getElementById('pubStatus');
+    status.textContent='正在读取文件...';
+    status.style.color='var(--blue-600)';
+    try{
+      const text=await file.text();
+      const content=btoa(unescape(encodeURIComponent(text)));
+      status.textContent='正在上传到 GitHub...';
+      // 获取现有文件 sha（用于覆盖）
+      let sha=null;
+      const cfg2=getCloudConfig();
+      try{
+        const r=await fetch(`https://api.github.com/repos/${cfg2.owner}/${cfg2.repo}/contents/index.html`,{
+          headers:{'Authorization':'token '+cfg2.token,'Accept':'application/vnd.github+json'}
+        });
+        if(r.ok){const j=await r.json();sha=j.sha}
+      }catch{}
+      const body={message:'Publish HTML '+new Date().toISOString(),content};
+      if(sha)body.sha=sha;
+      const r=await fetch(`https://api.github.com/repos/${cfg2.owner}/${cfg2.repo}/contents/index.html`,{
+        method:'PUT',
+        headers:{'Authorization':'token '+cfg2.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+        body:JSON.stringify(body)
+      });
+      if(!r.ok){
+        const err=await r.json().catch(()=>({message:'未知错误'}));
+        throw new Error(err.message||('HTTP '+r.status));
+      }
+      status.innerHTML='✅ <b>发布成功！</b><br>约 1-2 分钟后访问：<br><a href="https://${cfg2.owner}.github.io/${cfg2.repo}/" target="_blank" style="color:var(--blue-600)">https://${cfg2.owner}.github.io/${cfg2.repo}/</a><br><br><span style="font-size:11px;color:var(--muted)">提示：手机/浏览器如有缓存，可强制刷新（Ctrl+Shift+R）</span>';
+      status.style.color='var(--green)';
+      toast('已发布到 GitHub Pages','success');
+    }catch(err){
+      status.textContent='❌ 失败：'+err.message;
+      status.style.color='var(--red)';
+      toast('发布失败：'+err.message,'error');
+    }
+    e.target.value='';
+  };
 }
 function saveCloudConfigFromForm(){
   const owner=document.getElementById('cloud_owner').value.trim();
   const repo=document.getElementById('cloud_repo').value.trim();
-  const token=document.getElementById('cloud_token').value.trim();
-  if(!owner||!repo||!token){toast('请填写完整','error');return}
+  const tkEl=document.getElementById('cloud_token');
+  let token=tkEl.value.trim();
+  // Token 留空时保留旧值（用户只想改用户名/仓库名时方便）
+  if(!token && tkEl.dataset.keepOld==='1'){
+    token=getCloudConfig().token||'';
+  }
+  if(!owner||!repo||!token){toast('请填写完整（Token 不能为空）','error');return}
   saveCloudConfig({owner,repo,token});
   updateCloudBtn();
   document.getElementById('cloudMask').remove();
@@ -1406,8 +1507,12 @@ function saveCloudConfigFromForm(){
 async function testCloudConnection(){
   const owner=document.getElementById('cloud_owner').value.trim();
   const repo=document.getElementById('cloud_repo').value.trim();
-  const token=document.getElementById('cloud_token').value.trim();
-  if(!owner||!repo||!token){toast('请填写完整','error');return}
+  const tkEl=document.getElementById('cloud_token');
+  let token=tkEl.value.trim();
+  if(!token && tkEl.dataset.keepOld==='1'){
+    token=getCloudConfig().token||'';
+  }
+  if(!owner||!repo||!token){toast('请填写完整（Token 不能为空）','error');return}
   toast('正在测试连接...','');
   try{
     // 1. 校验 token 本身
