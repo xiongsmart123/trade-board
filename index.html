@@ -1341,14 +1341,54 @@ async function cloudSync(){
     openCloudSetup();
     return;
   }
-  // 已配置 → 选择操作
-  const choice=confirm(
-    '当前云端：'+cfg.owner+'/'+cfg.repo+'\n\n'+
-    '点「确定」= 上传本地数据到云端（覆盖云端）\n'+
-    '点「取消」= 从云端拉取数据到本地（覆盖本地）'
-  );
-  if(choice) await cloudPush();
-  else await cloudPull();
+  // 已配置 → 弹出明确的双按钮面板
+  openCloudPanel();
+}
+// 云同步操作面板
+function openCloudPanel(){
+  const cfg=getCloudConfig();
+  // 移除旧面板
+  const old=document.getElementById('cloudPanelMask');if(old)old.remove();
+  const html=`
+    <div class="modal-mask show" id="cloudPanelMask" onclick="if(event.target.id==='cloudPanelMask')this.remove()">
+      <div class="modal" style="max-width:440px">
+        <div class="modal-header">
+          <h3>☁️ 云同步</h3>
+          <button class="modal-close" onclick="document.getElementById('cloudPanelMask').remove()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-bottom:16px;font-size:12px;color:#15803d">
+            ✓ 已连接：<b>${cfg.owner}/${cfg.repo}</b>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <button class="btn btn-primary" onclick="document.getElementById('cloudPanelMask').remove();cloudPush()" style="padding:16px;font-size:15px;text-align:left;display:flex;align-items:center;gap:12px">
+              <span style="font-size:24px">⬆️</span>
+              <span>
+                <div style="font-weight:600">上传到云端</div>
+                <div style="font-size:12px;font-weight:400;opacity:.85">把本机的订单数据推送到 GitHub（覆盖云端）</div>
+              </span>
+            </button>
+            <button class="btn btn-ghost" onclick="document.getElementById('cloudPanelMask').remove();cloudPull()" style="padding:16px;font-size:15px;text-align:left;display:flex;align-items:center;gap:12px;border:1px solid var(--blue-300);color:var(--blue-700)">
+              <span style="font-size:24px">⬇️</span>
+              <span>
+                <div style="font-weight:600">从云端拉取</div>
+                <div style="font-size:12px;font-weight:400;opacity:.85">把 GitHub 上的订单数据拉到本机（覆盖本地）</div>
+              </span>
+            </button>
+          </div>
+          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-top:14px;font-size:11px;color:#92400e;line-height:1.6">
+            💡 <b>什么时候用哪个？</b><br>
+            • 电脑端改了订单 → 点 <b>⬆️ 上传到云端</b><br>
+            • 手机端想看最新进度 → 点 <b>⬇️ 从云端拉取</b>
+          </div>
+          <div style="margin-top:12px;text-align:center">
+            <button class="btn btn-ghost" onclick="openCloudSetup()" style="font-size:12px;color:var(--muted)">⚙️ 修改配置 / 清空</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend',html);
 }
 // 配置弹窗
 function openCloudSetup(){
