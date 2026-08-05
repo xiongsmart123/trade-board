@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover">
+<title>外贸跟单进度看板</title>
+
+<!-- ============ PWA 配置 ============ -->
+<meta name="theme-color" content="#1d4ed8">
+<meta name="description" content="外贸跟单进度看板 - 订单管理 / 检查清单 / 证据管理 / 离线可用">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="外贸跟单">
+<meta name="application-name" content="外贸跟单">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20180%20180'%3E%3Crect%20width='180'%20height='180'%20rx='40'%20fill='%231d4ed8'/%3E%3Ctext%20x='90'%20y='128'%20font-size='100'%20text-anchor='middle'%3E%F0%9F%9A%A2%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href='data:application/manifest+json,{"name":"外贸跟单进度看板","short_name":"外贸跟单","description":"订单管理 / 检查清单 / 证据管理","start_url":".","scope":".","display":"standalone","orientation":"any","background_color":"#f1f5f9","theme_color":"#1d4ed8","icons":[{"src":"data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%20512%20512%27%3E%3Crect%20width=%27512%27%20height=%27512%27%20rx=%27112%27%20fill=%27%231d4ed8%27/%3E%3Ctext%20x=%27256%27%20y=%27360%27%20font-size=%27280%27%20text-anchor=%27middle%27%3E%F0%9F%9A%A2%3C/text%3E%3C/svg%3E","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}'>
+<style>
+  :root{
+    --blue-900:#0c2d6b;
+    --blue-700:#1e40af;
+    --blue-600:#1d4ed8;
+    --blue-500:#2563eb;
+    --blue-400:#3b82f6;
+    --blue-100:#dbeafe;
+    --blue-50:#eff6ff;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --bg:#f1f5f9;
+    --card:#ffffff;
+    --green:#16a34a;
+    --green-bg:#dcfce7;
+    --yellow:#d97706;
+    --yellow-bg:#fef3c7;
+    --red:#dc2626;
+    --red-bg:#fee2e2;
+    --shadow:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
+    --shadow-lg:0 10px 25px -5px rgba(15,23,42,.15),0 8px 10px -6px rgba(15,23,42,.08);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* 顶栏 */
+  .topbar{
+    background:linear-gradient(120deg,var(--blue-700),var(--blue-500));
+    color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+    box-shadow:0 2px 8px rgba(30,64,175,.25);position:sticky;top:0;z-index:50;
+    flex-wrap:wrap;gap:12px;
+  }
+  .topbar h1{font-size:18px;font-weight:600;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+  .topbar h1 .logo{
+    width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.18);
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .topbar .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .search-box{
+    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+    border-radius:10px;padding:8px 14px;color:#fff;display:flex;align-items:center;gap:8px;
+    min-width:220px;
+  }
+  .search-box input{
+    background:transparent;border:none;outline:none;color:#fff;font-size:14px;width:100%;
+  }
+  .search-box input::placeholder{color:rgba(255,255,255,.7)}
+  .btn{
+    border:none;border-radius:10px;padding:9px 18px;font-size:14px;font-weight:500;
+    cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn-primary{background:#fff;color:var(--blue-700);box-shadow:0 2px 6px rgba(0,0,0,.12)}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.18)}
+  .btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3)}
+  .btn-ghost:hover{background:rgba(255,255,255,.25)}
+  .btn-blue{background:var(--blue-500);color:#fff}
+  .btn-blue:hover{background:var(--blue-600)}
+  .btn-danger{background:var(--red);color:#fff}
+  .btn-danger:hover{background:#b91c1c}
+  .btn-gray{background:#e2e8f0;color:#475569}
+  .btn-gray:hover{background:#cbd5e1}
+
+  /* 统计条 */
+  .stats{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:14px;padding:20px 24px 4px;
+  }
+  .stat-card{
+    background:var(--card);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow);
+    border-left:4px solid var(--blue-500);
+  }
+  .stat-card .label{font-size:12px;color:var(--muted);margin-bottom:4px}
+  .stat-card .value{font-size:24px;font-weight:700;color:var(--ink)}
+  .stat-card.warn{border-left-color:var(--yellow)}
+  .stat-card.danger{border-left-color:var(--red)}
+  .stat-card.ok{border-left-color:var(--green)}
+
+  /* 看板 */
+  .board-wrap{padding:16px 24px 40px;overflow-x:auto}
+  .board{
+    display:grid;grid-template-columns:repeat(5,minmax(260px,1fr));gap:16px;min-width:1100px;
+  }
+  .column{
+    background:#eef2f7;border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:10px;
+    min-height:200px;
+  }
+  .column-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:4px 6px 8px;border-bottom:2px solid rgba(0,0,0,.06);
+  }
+  .column-header .title{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .column-header .dot{width:10px;height:10px;border-radius:50%}
+  .column-header .count{
+    background:rgba(30,64,175,.1);color:var(--blue-700);font-size:12px;font-weight:600;
+    padding:2px 10px;border-radius:20px;
+  }
+  .col-pending .dot{background:#64748b}
+  .col-producing .dot{background:var(--blue-500)}
+  .col-inspecting .dot{background:#7c3aed}
+  .col-shipping .dot{background:var(--yellow)}
+  .col-done .dot{background:var(--green)}
+
+  .card{
+    background:var(--card);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);
+    cursor:pointer;transition:all .2s;border:2px solid transparent;position:relative;
+  }
+  .card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg);border-color:var(--blue-100)}
+  .card .orderno{font-size:13px;font-weight:600;color:var(--blue-700);margin-bottom:4px}
+  .card .customer{font-size:13px;color:var(--ink);font-weight:500;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .meta{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
+  .card .progress-wrap{margin-top:8px}
+  .progress-bar{height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;margin-bottom:4px}
+  .progress-bar > div{height:100%;background:linear-gradient(90deg,var(--blue-400),var(--blue-600));transition:width .3s}
+  .progress-text{font-size:11px;color:var(--muted);display:flex;justify-content:space-between}
+  .badge{
+    font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;
+  }
+  .badge.normal{background:var(--green-bg);color:var(--green)}
+  .badge.soon{background:var(--yellow-bg);color:var(--yellow)}
+  .badge.late{background:var(--red-bg);color:var(--red)}
+  .card.late{border-color:var(--red)}
+  .card.soon{border-color:var(--yellow)}
+  .empty-col{color:var(--muted);font-size:12px;text-align:center;padding:20px 0;font-style:italic}
+  /* 卡片左侧彩色条（备注标识色） */
+  .card .remark-bar{
+    position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:12px 0 0 12px;
+  }
+  .remark-bar.red{background:#dc2626}
+  .remark-bar.orange{background:#d97706}
+  .remark-bar.blue{background:#2563eb}
+  .remark-bar.green{background:#16a34a}
+  .remark-bar.purple{background:#7c3aed}
+  .card .remark-tag{
+    display:inline-flex;align-items:center;gap:3px;font-size:11px;
+    padding:2px 7px;border-radius:8px;margin-top:6px;max-width:100%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .remark-tag.red{background:#fee2e2;color:#dc2626}
+  .remark-tag.orange{background:#fef3c7;color:#d97706}
+  .remark-tag.blue{background:#dbeafe;color:#2563eb}
+  .remark-tag.green{background:#dcfce7;color:#16a34a}
+  .remark-tag.purple{background:#ede9fe;color:#7c3aed}
+  .remark-tag::before{content:"📌";font-size:10px}
+
+  /* 模态框 */
+  .mask{
+    position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;
+    align-items:flex-start;justify-content:center;z-index:100;padding:30px 16px;overflow-y:auto;
+  }
+  .mask.show{display:flex}
+  .modal{
+    background:#fff;border-radius:16px;width:100%;max-width:680px;box-shadow:var(--shadow-lg);
+    animation:pop .2s ease;
+  }
+  @keyframes pop{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-header{
+    padding:18px 22px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .modal-header h2{font-size:17px;color:var(--blue-700)}
+  .modal-header .close{
+    width:32px;height:32px;border-radius:8px;border:none;background:#f1f5f9;color:var(--muted);
+    cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
+  }
+  .modal-header .close:hover{background:#e2e8f0;color:var(--ink)}
+  .modal-body{padding:22px;max-height:70vh;overflow-y:auto}
+  .modal-footer{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;background:#f8fafc;border-radius:0 0 16px 16px}
+
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-grid .full{grid-column:1/-1}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;color:var(--muted);font-weight:500}
+  .field label .req{color:var(--red)}
+  .field input,.field select,.field textarea{
+    border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px;
+    outline:none;transition:all .2s;font-family:inherit;background:#fff;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{
+    border-color:var(--blue-400);box-shadow:0 0 0 3px rgba(59,130,246,.15);
+  }
+  .color-picker{display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap}
+  .color-picker .cp-label{font-size:12px;color:var(--muted)}
+  .color-picker .cp-dot{
+    width:24px;height:24px;border-radius:50%;border:2px solid #fff;
+    box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;transition:all .15s;
+  }
+  .color-picker .cp-dot:hover{transform:scale(1.15)}
+  .color-picker .cp-dot.active{box-shadow:0 0 0 2px var(--ink);transform:scale(1.1)}
+
+  /* 详情 */
+  .detail-head{background:linear-gradient(120deg,var(--blue-50),#fff);border-radius:12px;padding:16px 18px;margin-bottom:18px;border:1px solid var(--blue-100)}
+  .detail-head .orderno{font-size:18px;font-weight:700;color:var(--blue-700);margin-bottom:6px}
+  .detail-head .row{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:6px}
+  .detail-head .row b{color:var(--ink);font-weight:600}
+  .detail-progress{margin-top:12px}
+  .detail-progress .bar{height:8px;background:#e2e8f0;border-radius:5px;overflow:hidden}
+  .detail-progress .bar > div{height:100%;background:linear-gradient(90deg,var(--blue-400),var(--blue-600));transition:width .3s}
+  .detail-progress .ptext{display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:var(--muted)}
+
+  .stage{margin-bottom:14px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .stage-title{
+    background:var(--blue-50);padding:10px 14px;font-weight:600;font-size:13px;color:var(--blue-700);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .stage-title .pct{font-size:12px;color:var(--muted);font-weight:500}
+  .stage-items{padding:6px 14px}
+  .check-item{
+    display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px dashed #eef2f7;font-size:13px;
+  }
+  .check-item:last-child{border-bottom:none}
+  .check-item input[type=checkbox]{
+    width:18px;height:18px;accent-color:var(--blue-600);cursor:pointer;flex-shrink:0;
+  }
+  .check-item.done span{text-decoration:line-through;color:var(--muted)}
+  .check-item span{flex:1}
+  .check-item .ev-count{
+    font-size:11px;background:var(--blue-100);color:var(--blue-700);
+    padding:1px 7px;border-radius:10px;margin-right:6px;white-space:nowrap;
+  }
+  .check-item .ev-count.empty{background:#f1f5f9;color:var(--muted)}
+  .check-item .ev-count.has{background:var(--green-bg);color:var(--green)}
+  .check-item .upload-btn{
+    font-size:11px;background:var(--blue-50);color:var(--blue-700);
+    border:1px solid var(--blue-100);padding:2px 8px;border-radius:6px;
+    cursor:pointer;white-space:nowrap;
+  }
+  .check-item .upload-btn:hover{background:var(--blue-100)}
+  .check-item.locked input[type=checkbox]{cursor:not-allowed;opacity:.5}
+  .evidence-box{
+    margin:4px 0 8px 28px;padding:8px 10px;background:#f8fafc;border-radius:8px;
+    border:1px dashed var(--line);font-size:12px;
+  }
+  .evidence-box .ev-empty{color:var(--muted);font-style:italic}
+  .evidence-box .ev-file{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:5px 0;border-bottom:1px dashed #e2e8f0;
+  }
+  .evidence-box .ev-file:last-child{border-bottom:none}
+  .evidence-box .ev-file .name{
+    color:var(--blue-700);cursor:pointer;flex:1;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;
+  }
+  .evidence-box .ev-file .name:hover{text-decoration:underline}
+  .evidence-box .ev-file .meta{color:var(--muted);font-size:11px;white-space:nowrap}
+  .evidence-box .ev-file .del{
+    color:var(--red);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:11px;
+  }
+  .evidence-box .ev-file .del:hover{background:var(--red-bg)}
+
+  .empty-state{
+    text-align:center;padding:60px 20px;color:var(--muted);
+  }
+  .empty-state .icon{font-size:48px;margin-bottom:12px;opacity:.5}
+
+  /* 移动端 */
+  @media(max-width:768px){
+    .topbar{padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top))}
+    .topbar h1{font-size:15px}
+    .search-box{min-width:140px;flex:1}
+    .stats{padding:14px;gap:10px}
+    .stat-card{padding:10px 14px}
+    .stat-card .value{font-size:20px}
+    .board-wrap{padding:12px;padding-bottom:max(40px,env(safe-area-inset-bottom))}
+    .board{grid-template-columns:1fr;min-width:0;gap:12px}
+    .form-grid{grid-template-columns:1fr}
+    .modal-body{padding:16px}
+    .modal-header{padding:14px 16px}
+    .modal-footer{padding-bottom:max(14px,env(safe-area-inset-bottom))}
+    /* 手机端顶栏按钮紧凑化 */
+    .topbar .actions{width:100%}
+    .topbar .actions .btn{padding:8px 12px;font-size:13px}
+  }
+  /* 平板 */
+  @media(min-width:769px) and (max-width:1100px){
+    .board{grid-template-columns:repeat(2,minmax(280px,1fr));min-width:0}
+  }
+  /* toast */
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);
+    background:var(--ink);color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;
+    box-shadow:var(--shadow-lg);z-index:200;opacity:0;transition:all .3s;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .toast.success{background:var(--green)}
+  .toast.error{background:var(--red)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1><span class="logo">🚢</span> 外贸跟单进度看板</h1>
+  <div class="actions">
+    <div class="search-box">
+      <span>🔍</span>
+      <input id="searchInput" type="text" placeholder="搜索订单号 / 客户名">
+    </div>
+    <button class="btn btn-ghost" id="btnLink" onclick="linkLocalFile()" title="绑定本地文件，数据自动保存到该文件">🔗 绑定本地文件</button>
+    <button class="btn btn-ghost" id="btnCloud" onclick="cloudSync()" title="同步订单数据到 GitHub 云端">☁️ 云同步</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📂 导入</button>
+    <button class="btn btn-ghost" onclick="exportData()">⬇ 导出</button>
+    <button class="btn btn-primary" onclick="openForm()">＋ 新建订单</button>
+  </div>
+</div>
+
+<div class="stats" id="statsBar"></div>
+
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+
+<!-- 表单模态框 -->
+<div class="mask" id="formMask">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="formTitle">新建订单</h2>
+      <button class="close" onclick="closeForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="orderForm" class="form-grid" onsubmit="saveOrder(event)">
+        <input type="hidden" id="f_id">
+        <div class="field">
+          <label>订单号 <span class="req">*</span></label>
+          <input id="f_orderno" required placeholder="如 SO-2026-001">
+        </div>
+        <div class="field">
+          <label>客户名称 <span class="req">*</span></label>
+          <input id="f_customer" required placeholder="客户公司名">
+        </div>
+        <div class="field full">
+          <label>产品型号</label>
+          <input id="f_product" placeholder="如 SKU-A100 / 多型号用逗号分隔">
+        </div>
+        <div class="field">
+          <label>订单金额 (USD)</label>
+          <input id="f_amount" type="number" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="field">
+          <label>贸易条款</label>
+          <select id="f_terms">
+            <option>FOB</option><option>CIF</option><option>EXW</option>
+            <option>CFR</option><option>DDP</option><option>DAP</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>下单日期 <span class="req">*</span></label>
+          <input id="f_orderDate" type="date" required>
+        </div>
+        <div class="field">
+          <label>交期日期 <span class="req">*</span></label>
+          <input id="f_deliveryDate" type="date" required>
+        </div>
+        <div class="field">
+          <label>付款方式（可输入自定义）</label>
+          <input id="f_payment" list="paymentList" placeholder="如 T/T 30%定金+70%尾款 / 自定义">
+          <datalist id="paymentList">
+            <option>T/T 30%定金+70%尾款</option>
+            <option>T/T 100%预付</option>
+            <option>L/C 即期</option>
+            <option>L/C 90天</option>
+            <option>D/P</option>
+            <option>O/A 30天</option>
+            <option>O/A 60天</option>
+            <option>T/T 50%定金+50%尾款</option>
+            <option>PayPal</option>
+            <option>西联汇款</option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label>当前状态</label>
+          <select id="f_status">
+            <option value="待确认">待确认</option>
+            <option value="生产中">生产中</option>
+            <option value="验货中">验货中</option>
+            <option value="待出货">待出货</option>
+            <option value="已完成">已完成</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>备注 <span style="color:var(--muted);font-weight:400">（选颜色在看板上做彩色标识）</span></label>
+          <textarea id="f_remark" rows="2" placeholder="特殊要求、注意事项..."></textarea>
+          <div class="color-picker" id="remarkColorPicker">
+            <span class="cp-label">标识色：</span>
+            <button type="button" class="cp-dot" data-color="none" style="background:#cbd5e1" title="无标识"></button>
+            <button type="button" class="cp-dot active" data-color="red" style="background:#dc2626" title="红：紧急/重要"></button>
+            <button type="button" class="cp-dot" data-color="orange" style="background:#d97706" title="橙：注意"></button>
+            <button type="button" class="cp-dot" data-color="blue" style="background:#2563eb" title="蓝：信息"></button>
+            <button type="button" class="cp-dot" data-color="green" style="background:#16a34a" title="绿：已完成相关"></button>
+            <button type="button" class="cp-dot" data-color="purple" style="background:#7c3aed" title="紫：特殊"></button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeForm()">取消</button>
+      <button class="btn btn-blue" onclick="saveOrder(event)">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="mask" id="detailMask">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>订单详情与检查清单</h2>
+      <button class="close" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="deleteCurrent()">🗑 删除</button>
+      <button class="btn btn-gray" onclick="closeDetail()">关闭</button>
+      <button class="btn btn-blue" onclick="editFromDetail()">✎ 编辑</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 5大阶段 18个实操步骤 ============ */
+const STAGES = [
+  {name:"① 订单确认",items:[
+    "核对PO细节（数量/型号/价格/交期）",
+    "确认定金到账",
+    "签订PI/销售合同"
+  ]},
+  {name:"② 生产准备",items:[
+    "包材打样确认（彩盒/说明书/标签）",
+    "首件确认（封样）",
+    "原料/配件采购到位",
+    "生产排期下达工厂"
+  ]},
+  {name:"③ 生产过程",items:[
+    "量产启动并跟进出货进度",
+    "中期巡检（品质抽查）",
+    "完工自检与产量核对"
+  ]},
+  {name:"④ 验货与出货",items:[
+    "第三方验货安排（SGS/客户QC）",
+    "验货通过出报告",
+    "订舱（SO/柜型柜量）",
+    "装柜拍照留档",
+    "报关资料制作与发送"
+  ]},
+  {name:"⑤ 交付与结算",items:[
+    "核对提单草稿（B/L Draft）",
+    "正本提单确认与放单",
+    "尾款跟进与到账确认",
+    "全套单据归档与售后跟进"
+  ]}
+];
+// 总步骤数（应为18）
+const TOTAL_STEPS = STAGES.reduce((s,st)=>s+st.items.length,0);
+
+const STATUS_LIST = ["待确认","生产中","验货中","待出货","已完成"];
+const STORAGE_KEY = "trade_orders_v1";
+const FILE_HANDLE_DB = "trade_orders_db";
+const FILE_HANDLE_STORE = "file_handles";
+const FILE_HANDLE_KEY = "root_dir";
+
+/* ============ 数据层 ============ */
+function loadOrders(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw?JSON.parse(raw):[];
+  }catch(e){return []}
+}
+// 主存储：写 LocalStorage（兜底）+ 若已绑定工作目录则同步写 orders.json
+let _rootHandle = null;           // 已激活的工作目录句柄
+let _savedRootHandle = null;      // 上次绑定待恢复权限的句柄
+let _autoSaveTimer = null;        // 防抖定时器
+// 订单子文件夹句柄缓存：orderId -> FileSystemDirectoryHandle
+let _folderCache = {};
+
+async function saveOrders(list){
+  // 1. 始终先写 LocalStorage，保证离线兜底
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(list));
+  // 2. 若绑定了工作目录，则自动写回 orders.json（防抖 300ms）
+  if(_rootHandle){
+    if(_autoSaveTimer) clearTimeout(_autoSaveTimer);
+    _autoSaveTimer=setTimeout(()=>writeOrdersFile(list),300);
+  }
+}
+let ORDERS = loadOrders();
+let currentId = null;
+
+/* ============ File System Access API：工作目录自动管理 ============ */
+const FS_API_SUPPORTED = 'showDirectoryPicker' in window;
+
+function openHandleDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(FILE_HANDLE_DB,1);
+    req.onupgradeneeded=()=>req.result.createObjectStore(FILE_HANDLE_STORE);
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function saveHandle(handle){
+  const db=await openHandleDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(FILE_HANDLE_STORE,'readwrite');
+    tx.objectStore(FILE_HANDLE_STORE).put(handle,FILE_HANDLE_KEY);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function loadHandle(){
+  try{
+    const db=await openHandleDB();
+    return new Promise((resolve)=>{
+      const tx=db.transaction(FILE_HANDLE_STORE,'readonly');
+      const req=tx.objectStore(FILE_HANDLE_STORE).get(FILE_HANDLE_KEY);
+      req.onsuccess=()=>resolve(req.result||null);
+      req.onerror=()=>resolve(null);
+    });
+  }catch(e){return null}
+}
+async function clearHandle(){
+  try{
+    const db=await openHandleDB();
+    return new Promise((resolve)=>{
+      const tx=db.transaction(FILE_HANDLE_STORE,'readwrite');
+      tx.objectStore(FILE_HANDLE_STORE).delete(FILE_HANDLE_KEY);
+      tx.oncomplete=()=>resolve();
+      tx.onerror=()=>resolve();
+    });
+  }catch(e){}
+}
+
+// 写 orders.json 到工作目录根
+async function writeOrdersFile(list){
+  if(!_rootHandle) return;
+  try{
+    const fh=await _rootHandle.getFileHandle('orders.json',{create:true});
+    const writable=await fh.createWritable();
+    await writable.write(JSON.stringify(list,null,2));
+    await writable.close();
+  }catch(e){
+    if(e.name==='NotAllowedError'){
+      toast('目录权限失效，请重新绑定工作目录','error');
+      _rootHandle=null;
+      updateLinkBtn();
+    }else{
+      console.error('写入 orders.json 失败',e);
+    }
+  }
+}
+
+// 安全文件名：去掉非法字符
+function safeName(s){
+  return (s||'').replace(/[\\/:*?"<>|]/g,'_').trim().slice(0,60)||'未命名';
+}
+// 订单对应的子文件夹名
+function folderNameFor(o){
+  return safeName(o.customer)+'_'+safeName(o.orderno);
+}
+// 获取/创建某订单的子文件夹句柄
+async function getFolder(order,create=true){
+  if(!order) return null;
+  if(_folderCache[order.id]) return _folderCache[order.id];
+  if(!_rootHandle) return null;
+  try{
+    const sub=await _rootHandle.getDirectoryHandle(folderNameFor(order),{create});
+    _folderCache[order.id]=sub;
+    return sub;
+  }catch(e){
+    console.error('获取订单文件夹失败',e);
+    return null;
+  }
+}
+
+// 用户主动绑定工作目录
+async function linkLocalFile(){
+  if(!FS_API_SUPPORTED){
+    toast('当前浏览器不支持本地目录自动保存，请用 Chrome/Edge，或使用「导出/导入」手动备份','error');
+    return;
+  }
+  try{
+    let handle=_savedRootHandle||await loadHandle();
+    if(handle){
+      // 已有句柄：请求权限（必须由用户手势触发）
+      const req=await handle.requestPermission({mode:'readwrite'});
+      if(req==='granted'){
+        _rootHandle=handle;
+        _savedRootHandle=null;
+        _folderCache={};
+        await writeOrdersFile(ORDERS);
+        updateLinkBtn();
+        toast('已重新连接到工作目录：'+handle.name,'success');
+        resumePendingUploads();
+        return;
+      }else{
+        toast('未授予目录权限，自动保存未开启','error');
+        return;
+      }
+    }
+    // 首次绑定：弹出目录选择对话框
+    handle=await window.showDirectoryPicker({mode:'readwrite'});
+    _rootHandle=handle;
+    _savedRootHandle=null;
+    _folderCache={};
+    await saveHandle(handle);
+    await writeOrdersFile(ORDERS);
+    updateLinkBtn();
+    toast('已绑定工作目录：'+handle.name+'，订单数据与证据文件将自动保存','success');
+    resumePendingUploads();
+  }catch(e){
+    if(e.name==='AbortError'){
+      // 用户取消绑定 → 放弃待上传任务
+      if(_pendingUploads.length){
+        _pendingUploads=[];
+        toast('已取消绑定，本次上传未执行','error');
+      }
+      return;
+    }
+    console.error(e);
+    toast('绑定失败：'+e.message,'error');
+    if(_pendingUploads.length)_pendingUploads=[];
+  }
+}
+async function unlinkLocalFile(){
+  _rootHandle=null;
+  _savedRootHandle=null;
+  _folderCache={};
+  await clearHandle();
+  updateLinkBtn();
+  toast('已解绑工作目录，数据仍保存在浏览器中','success');
+}
+function updateLinkBtn(){
+  const btn=document.getElementById('btnLink');
+  if(_rootHandle){
+    btn.textContent='✓ 工作目录：'+(_rootHandle.name||'已绑定');
+    btn.style.background='rgba(34,197,94,.25)';
+    btn.title='数据正自动保存到该目录，点击解绑';
+    btn.onclick=unlinkLocalFile;
+  }else if(_savedRootHandle){
+    btn.textContent='🔄 恢复目录连接';
+    btn.style.background='rgba(245,158,11,.25)';
+    btn.title='点击恢复对上次绑定目录的自动保存';
+    btn.onclick=linkLocalFile;
+  }else{
+    btn.textContent=FS_API_SUPPORTED?'🔗 绑定工作目录':'🔗 绑定工作目录（不支持）';
+    btn.style.background='';
+    btn.title=FS_API_SUPPORTED?'绑定本地目录，订单数据+证据文件自动保存':'当前浏览器不支持，请用 Chrome/Edge';
+    btn.onclick=linkLocalFile;
+  }
+}
+(async function(){
+  if(!FS_API_SUPPORTED){ updateLinkBtn(); return; }
+  _savedRootHandle=await loadHandle();
+  if(_savedRootHandle){
+    updateLinkBtn();
+    toast('检测到上次绑定的工作目录，点击「🔄 恢复目录连接」恢复自动保存','success');
+  }else{
+    updateLinkBtn();
+  }
+})();
+
+/* ============ 证据文件：上传/读取/删除 ============ */
+// 步骤标识：stageIdx_itemIdx
+function evidKey(stageIdx,itemIdx){return stageIdx+'_'+itemIdx}
+// 上传证据文件到订单子文件夹
+async function uploadEvidence(order,stageIdx,itemIdx,file){
+  ensureEvidence(order);
+  const key=evidKey(stageIdx,itemIdx);
+  // 文件命名：阶段_步骤_原始名（避免重名覆盖：加时间戳）
+  const prefix=String(stageIdx+1).padStart(2,'0')+'_'+String(itemIdx+1).padStart(2,'0')+'_';
+  const finalName=prefix+file.name.replace(/[\\/:*?"<>|]/g,'_');
+  if(_rootHandle){
+    const folder=await getFolder(order,true);
+    if(!folder){toast('无法访问订单文件夹，请重新绑定工作目录','error');return false}
+    try{
+      const fh=await folder.getFileHandle(finalName,{create:true});
+      const w=await fh.createWritable();
+      await w.write(file);
+      await w.close();
+    }catch(e){
+      console.error('写入证据文件失败',e);
+      toast('证据文件保存失败：'+e.message,'error');
+      return false;
+    }
+    if(!order.evidence[key])order.evidence[key]=[];
+    if(!order.evidence[key].includes(finalName))order.evidence[key].push(finalName);
+  }else{
+    // 未绑定目录：内嵌 base64 到 LocalStorage（注意大小限制）
+    if(file.size>2*1024*1024){
+      toast('文件超过 2MB，请先绑定工作目录或选小文件','error');return false;
+    }
+    const dataUrl=await fileToDataUrl(file);
+    if(!order.evidence[key])order.evidence[key]=[];
+    order.evidence[key].push({name:file.name,inline:dataUrl,size:file.size});
+  }
+  await saveOrders(ORDERS);
+  return true;
+}
+function ensureEvidence(order){
+  if(!order.evidence)order.evidence={};
+  return order;
+}
+function evidenceList(order,stageIdx,itemIdx){
+  ensureEvidence(order);
+  return order.evidence[evidKey(stageIdx,itemIdx)]||[];
+}
+async function evidenceFileBlob(order,stageIdx,itemIdx,ref){
+  // ref 可能是字符串（文件名，需从目录读）或 {inline:base64}
+  if(typeof ref==='string'){
+    if(!_rootHandle)return null;
+    const folder=await getFolder(order,false);
+    if(!folder)return null;
+    try{
+      const fh=await folder.getFileHandle(ref);
+      return await fh.getFile();
+    }catch(e){return null}
+  }else if(ref&&ref.inline){
+    // base64 转 Blob
+    const arr=ref.inline.split(',');
+    const mime=arr[0].match(/:(.*?);/)[1];
+    const bstr=atob(arr[1]);
+    const u8=new Uint8Array(bstr.length);
+    for(let i=0;i<bstr.length;i++)u8[i]=bstr.charCodeAt(i);
+    return new Blob([u8],{type:mime});
+  }
+  return null;
+}
+async function deleteEvidence(order,stageIdx,itemIdx,index){
+  ensureEvidence(order);
+  const key=evidKey(stageIdx,itemIdx);
+  const list=order.evidence[key]||[];
+  const ref=list[index];
+  if(!ref)return;
+  // 删本地文件
+  if(typeof ref==='string'&&_rootHandle){
+    const folder=await getFolder(order,false);
+    if(folder){
+      try{await folder.removeEntry(ref)}catch(e){console.warn(e)}
+    }
+  }
+  list.splice(index,1);
+  if(list.length===0)delete order.evidence[key];
+  await saveOrders(ORDERS);
+}
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result);
+    r.onerror=reject;
+    r.readAsDataURL(file);
+  });
+}
+
+/* ============ 工具函数 ============ */
+function daysLeft(delivery){
+  const today = new Date();today.setHours(0,0,0,0);
+  const d = new Date(delivery);d.setHours(0,0,0,0);
+  return Math.round((d-today)/86400000);
+}
+function genId(){
+  return 'O'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+}
+function ensureChecks(order){
+  // 兼容旧数据：补齐 checklist 结构
+  if(!order.checklist || order.checklist.length!==TOTAL_STEPS){
+    const arr=[];
+    STAGES.forEach(st=>st.items.forEach(()=>arr.push(false)));
+    // 尽量保留旧勾选
+    if(order.checklist){
+      for(let i=0;i<arr.length && i<order.checklist.length;i++) arr[i]=!!order.checklist[i];
+    }
+    order.checklist=arr;
+  }
+  return order;
+}
+function progress(order){
+  ensureChecks(order);
+  const done = order.checklist.filter(Boolean).length;
+  return Math.round(done/TOTAL_STEPS*100);
+}
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+(type||'');
+  setTimeout(()=>t.className='toast',1800);
+}
+function escapeHTML(s){
+  return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============ 渲染统计 ============ */
+function renderStats(){
+  const total = ORDERS.length;
+  const late = ORDERS.filter(o=>o.status!=="已完成" && daysLeft(o.deliveryDate)<0).length;
+  const soon = ORDERS.filter(o=>o.status!=="已完成" && daysLeft(o.deliveryDate)>=0 && daysLeft(o.deliveryDate)<=7).length;
+  const done = ORDERS.filter(o=>o.status==="已完成").length;
+  const inProgress = total-done;
+  const amount = ORDERS.reduce((s,o)=>s+(parseFloat(o.amount)||0),0);
+  document.getElementById('statsBar').innerHTML=`
+    <div class="stat-card"><div class="label">订单总数</div><div class="value">${total}</div></div>
+    <div class="stat-card ok"><div class="label">进行中</div><div class="value">${inProgress}</div></div>
+    <div class="stat-card warn"><div class="label">即将到期 (≤7天)</div><div class="value">${soon}</div></div>
+    <div class="stat-card danger"><div class="label">已延期</div><div class="value">${late}</div></div>
+    <div class="stat-card"><div class="label">订单总额 (USD)</div><div class="value">$${amount.toLocaleString()}</div></div>
+  `;
+}
+
+/* ============ 渲染看板 ============ */
+function renderBoard(){
+  renderStats();
+  const kw = (document.getElementById('searchInput').value||'').trim().toLowerCase();
+  const filtered = ORDERS.filter(o=>
+    !kw || (o.orderno||'').toLowerCase().includes(kw) || (o.customer||'').toLowerCase().includes(kw)
+  );
+  const board = document.getElementById('board');
+  board.innerHTML='';
+  STATUS_LIST.forEach(status=>{
+    const col = document.createElement('div');
+    col.className='column col-'+({待确认:'pending',生产中:'producing',验货中:'inspecting',待出货:'shipping',已完成:'done'}[status]);
+    const items = filtered.filter(o=>o.status===status);
+    col.innerHTML=`
+      <div class="column-header">
+        <div class="title"><span class="dot"></span>${status}</div>
+        <div class="count">${items.length}</div>
+      </div>
+    `;
+    if(items.length===0){
+      col.innerHTML+=`<div class="empty-col">暂无订单</div>`;
+    }else{
+      items.forEach(o=>{
+        const dl = daysLeft(o.deliveryDate);
+        let badgeClass='normal',badgeText='正常',cardClass='';
+        if(o.status!=="已完成"){
+          if(dl<0){badgeClass='late';badgeText='已延期 '+(-dl)+'天';cardClass='late';}
+          else if(dl<=7){badgeClass='soon';badgeText='剩 '+dl+' 天';cardClass='soon';}
+          else{badgeClass='normal';badgeText='剩 '+dl+' 天';}
+        }else{badgeText='已完成';badgeClass='normal';}
+        const p = progress(o);
+        const card=document.createElement('div');
+        card.className='card '+cardClass;
+        card.onclick=()=>openDetail(o.id);
+        const remarkColor=o.remarkColor||'none';
+        const hasRemark=o.remark&&o.remark.trim();
+        const showRemarkTag=hasRemark&&remarkColor!=='none';
+        card.innerHTML=`
+          ${remarkColor!=='none'?`<div class="remark-bar ${remarkColor}"></div>`:''}
+          <div class="orderno">${escapeHTML(o.orderno)}</div>
+          <div class="customer">${escapeHTML(o.customer)}</div>
+          <div class="meta">
+            <span>交期：${o.deliveryDate}</span>
+            <span class="badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar"><div style="width:${p}%"></div></div>
+            <div class="progress-text"><span>${escapeHTML(o.product||'—')}</span><span>${p}%</span></div>
+          </div>
+          ${showRemarkTag?`<div class="remark-tag ${remarkColor}" title="${escapeHTML(o.remark)}">${escapeHTML(o.remark.length>20?o.remark.slice(0,20)+'…':o.remark)}</div>`:(hasRemark?`<div class="remark-tag" style="background:#f1f5f9;color:#64748b" title="${escapeHTML(o.remark)}">${escapeHTML(o.remark.length>20?o.remark.slice(0,20)+'…':o.remark)}</div>`:'')}
+        `;
+        col.appendChild(card);
+      });
+    }
+    board.appendChild(col);
+  });
+  if(ORDERS.length===0){
+    document.querySelector('.board-wrap').innerHTML=`
+      <div class="empty-state">
+        <div class="icon">📦</div>
+        <div>暂无订单数据，点击右上角「新建订单」开始管理</div>
+      </div>`;
+  }
+}
+
+/* ============ 表单 ============ */
+function openForm(order){
+  document.getElementById('formMask').classList.add('show');
+  const f = document.getElementById('orderForm');
+  f.reset();
+  document.getElementById('f_id').value='';
+  document.getElementById('formTitle').textContent='新建订单';
+  setRemarkColor('red'); // 新建默认红色（用户最常用标识）
+  if(order){
+    document.getElementById('f_id').value=order.id;
+    document.getElementById('f_orderno').value=order.orderno||'';
+    document.getElementById('f_customer').value=order.customer||'';
+    document.getElementById('f_product').value=order.product||'';
+    document.getElementById('f_amount').value=order.amount||'';
+    document.getElementById('f_terms').value=order.terms||'FOB';
+    document.getElementById('f_orderDate').value=order.orderDate||'';
+    document.getElementById('f_deliveryDate').value=order.deliveryDate||'';
+    document.getElementById('f_payment').value=order.payment||'';
+    document.getElementById('f_status').value=order.status||'待确认';
+    document.getElementById('f_remark').value=order.remark||'';
+    setRemarkColor(order.remarkColor||'red');
+    document.getElementById('formTitle').textContent='编辑订单';
+  }
+}
+// 备注颜色选择器：设置当前色
+function setRemarkColor(color){
+  document.querySelectorAll('#remarkColorPicker .cp-dot').forEach(b=>{
+    b.classList.toggle('active',b.dataset.color===color);
+  });
+}
+// 颜色按钮点击事件
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('remarkColorPicker').addEventListener('click',e=>{
+    const btn=e.target.closest('.cp-dot');
+    if(!btn)return;
+    setRemarkColor(btn.dataset.color);
+  });
+});
+function closeForm(){document.getElementById('formMask').classList.remove('show')}
+
+function saveOrder(e){
+  if(e&&e.preventDefault)e.preventDefault();
+  const id=document.getElementById('f_id').value;
+  const data={
+    id:id||genId(),
+    orderno:document.getElementById('f_orderno').value.trim(),
+    customer:document.getElementById('f_customer').value.trim(),
+    product:document.getElementById('f_product').value.trim(),
+    amount:document.getElementById('f_amount').value,
+    terms:document.getElementById('f_terms').value,
+    orderDate:document.getElementById('f_orderDate').value,
+    deliveryDate:document.getElementById('f_deliveryDate').value,
+    payment:document.getElementById('f_payment').value,
+    status:document.getElementById('f_status').value,
+    remark:document.getElementById('f_remark').value.trim(),
+    remarkColor:document.querySelector('#remarkColorPicker .cp-dot.active')?.dataset.color||'none',
+  };
+  if(!data.orderno||!data.customer||!data.orderDate||!data.deliveryDate){
+    toast('请填写必填项','error');return;
+  }
+  const idx=ORDERS.findIndex(o=>o.id===data.id);
+  const isEdit = idx>=0;
+  if(isEdit){
+    data.checklist=ORDERS[idx].checklist;
+    data.evidence=ORDERS[idx].evidence||{};
+    // 若客户名或订单号变了，旧文件夹名失效；保留旧文件夹以保留证据
+    ORDERS[idx]=data;
+    toast('订单已更新','success');
+  }else{
+    data.checklist=STAGES.flatMap(st=>st.items.map(()=>false));
+    data.evidence={};
+    data.createdAt=new Date().toISOString();
+    ORDERS.unshift(data);
+    toast('订单已创建','success');
+  }
+  saveOrders(ORDERS);
+  // 创建/同步本地项目文件夹
+  if(_rootHandle){
+    getFolder(data,true).then(folder=>{
+      if(folder){
+        // 在订单文件夹内写一个 README 标识客户与订单
+        folder.getFileHandle('订单信息.txt',{create:true}).then(fh=>
+          fh.createWritable().then(w=>w.write(
+            '订单号：'+data.orderno+'\r\n'+
+            '客户：'+data.customer+'\r\n'+
+            '产品：'+(data.product||'')+'\r\n'+
+            '金额：'+(data.amount||'')+' USD\r\n'+
+            '条款：'+(data.terms||'')+'\r\n'+
+            '付款：'+(data.payment||'')+'\r\n'+
+            '下单：'+data.orderDate+'\r\n'+
+            '交期：'+data.deliveryDate+'\r\n'+
+            '状态：'+data.status+'\r\n'+
+            '备注：'+(data.remark||'')+'\r\n'
+          ).then(()=>w.close()))
+        ).catch(()=>{});
+        if(!isEdit)toast('已创建项目文件夹：'+folderNameFor(data),'success');
+      }
+    });
+  }
+  closeForm();
+  renderBoard();
+}
+
+/* ============ 详情 + 检查清单 ============ */
+function openDetail(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o)return;
+  ensureChecks(o);
+  currentId=id;
+  const dl=daysLeft(o.deliveryDate);
+  let dlText,dlColor;
+  if(o.status==="已完成"){dlText='已完成';dlColor='var(--green)';}
+  else if(dl<0){dlText='已延期 '+(-dl)+' 天';dlColor='var(--red)';}
+  else if(dl<=7){dlText='剩 '+dl+' 天（即将到期）';dlColor='var(--yellow)';}
+  else{dlText='剩 '+dl+' 天';dlColor='var(--green)';}
+
+  let stageHTML='';
+  let idx=0;
+  STAGES.forEach((st,si)=>{
+    let done=0;
+    const itemsHTML=st.items.map((it,i)=>{
+      const checked=o.checklist[idx]?'checked':'';
+      if(o.checklist[idx])done++;
+      const evs=evidenceList(o,si,i);
+      const evCount=evs.length;
+      const evCountClass=evCount>0?'has':'empty';
+      const evCountText='证据 '+evCount;
+      idx++;
+      // 证据文件列表
+      let evBoxHTML='';
+      if(checked||evCount>0){
+        if(evCount>0){
+          evBoxHTML='<div class="evidence-box">'+evs.map((ref,k)=>{
+            const name=typeof ref==='string'?ref:(ref.name||'文件');
+            const size=typeof ref==='string'?'':(ref.size?(' · '+(ref.size<1024?ref.size+'B':Math.round(ref.size/1024)+'KB')):'');
+            return `<div class="ev-file">
+              <span class="name" onclick="viewEvidence(${si},${i},${k})">📎 ${escapeHTML(name)}</span>
+              <span class="meta">${size?size.slice(3):''}</span>
+              <span class="del" onclick="removeEvidence(${si},${i},${k})">删除</span>
+            </div>`;
+          }).join('')+'</div>';
+        }else{
+          evBoxHTML='<div class="evidence-box"><div class="ev-empty">尚未上传证据。勾选完成需先上传至少1个证据文件</div></div>';
+        }
+      }
+      return `<label class="check-item ${checked?'done':''} ${!checked&&evCount===0?'locked':''}">
+        <input type="checkbox" ${checked} onchange="toggleCheck(${si},${i})">
+        <span>${escapeHTML(it)}</span>
+        <span class="ev-count ${evCountClass}">${evCountText}</span>
+        <span class="upload-btn" onclick="pickEvidence(${si},${i})">＋ 上传</span>
+      </label>${evBoxHTML}`;
+    }).join('');
+    const pct=Math.round(done/st.items.length*100);
+    stageHTML+=`
+      <div class="stage">
+        <div class="stage-title">${st.name}<span class="pct">${done}/${st.items.length} · ${pct}%</span></div>
+        <div class="stage-items">${itemsHTML}</div>
+      </div>`;
+  });
+
+  const p=progress(o);
+  document.getElementById('detailBody').innerHTML=`
+    <div class="detail-head">
+      <div class="orderno">${escapeHTML(o.orderno)}</div>
+      <div class="row">
+        <span>客户：<b>${escapeHTML(o.customer)}</b></span>
+        <span>产品：<b>${escapeHTML(o.product||'—')}</b></span>
+        <span>金额：<b>$${(parseFloat(o.amount)||0).toLocaleString()}</b></span>
+      </div>
+      <div class="row">
+        <span>条款：<b>${escapeHTML(o.terms||'—')}</b></span>
+        <span>付款：<b>${escapeHTML(o.payment||'—')}</b></span>
+        <span>状态：<b>${escapeHTML(o.status)}</b></span>
+      </div>
+      <div class="row">
+        <span>下单：<b>${o.orderDate}</b></span>
+        <span>交期：<b>${o.deliveryDate}</b></span>
+        <span style="color:${dlColor};font-weight:600">⏰ ${dlText}</span>
+      </div>
+      ${o.remark?`<div class="row"><span>备注：<span class="remark-tag ${o.remarkColor&&o.remarkColor!=='none'?o.remarkColor:''}" style="margin-left:4px;${(!o.remarkColor||o.remarkColor==='none')?'background:#f1f5f9;color:#475569':''}">${escapeHTML(o.remark)}</span></span></div>`:''}
+      <div class="detail-progress">
+        <div class="bar"><div style="width:${p}%"></div></div>
+        <div class="ptext"><span>总体进度</span><span>${p}%（${o.checklist.filter(Boolean).length}/${TOTAL_STEPS}）</span></div>
+      </div>
+    </div>
+    ${stageHTML}
+  `;
+  document.getElementById('detailMask').classList.add('show');
+}
+function closeDetail(){document.getElementById('detailMask').classList.remove('show')}
+
+function toggleCheck(stageIdx,itemIdx){
+  if(!currentId)return;
+  const o=ORDERS.find(x=>x.id===currentId);
+  if(!o)return;
+  ensureChecks(o);
+  let globalIdx=0;
+  for(let i=0;i<stageIdx;i++) globalIdx+=STAGES[i].items.length;
+  globalIdx+=itemIdx;
+  const willCheck=!o.checklist[globalIdx];
+  // 勾选前强制要求至少1个证据
+  if(willCheck && evidenceList(o,stageIdx,itemIdx).length===0){
+    toast('请先上传至少1个证据文件，再勾选完成','error');
+    openDetail(currentId); // 还原 checkbox 状态
+    return;
+  }
+  o.checklist[globalIdx]=willCheck;
+  // 根据已勾选步骤自动推进状态
+  const oldStatus=o.status;
+  const newStatus=calcStatusByProgress(o);
+  if(newStatus!==oldStatus){
+    o.status=newStatus;
+    toast('状态已自动推进：'+oldStatus+' → '+newStatus,'success');
+  }
+  saveOrders(ORDERS);
+  // 局部更新详情 + 看板
+  openDetail(currentId);
+  renderBoard();
+}
+
+/* ============ 证据交互：选择/查看/删除 ============ */
+// 待上传队列：用户绑定目录后自动续传 [{stageIdx,itemIdx,files:[File]}]
+let _pendingUploads = [];
+async function pickEvidence(stageIdx,itemIdx){
+  if(!currentId)return;
+  const o=ORDERS.find(x=>x.id===currentId);
+  if(!o)return;
+  // 上传前强制检查：必须先绑定工作目录，否则文件无处保存
+  if(!_rootHandle){
+    const choice=confirm(
+      '尚未绑定工作目录，证据文件需要保存到本地文件夹。\n\n'+
+      '点击「确定」立即绑定工作目录（推荐，绑定后可继续上传）；\n'+
+      '点击「取消」则本次上传作废。'
+    );
+    if(choice){
+      // 记录用户意图，绑定成功后续传
+      _pendingUploads.push({stageIdx,itemIdx,orderId:currentId});
+      await linkLocalFile();
+    }
+    return;
+  }
+  doPick(stageIdx,itemIdx);
+}
+// 绑定目录成功后的回调：自动恢复待上传任务
+async function resumePendingUploads(){
+  const queue=_pendingUploads.splice(0);
+  for(const task of queue){
+    // 确认订单仍存在
+    if(!ORDERS.find(o=>o.id===task.orderId))continue;
+    currentId=task.orderId;
+    doPick(task.stageIdx,task.itemIdx);
+  }
+}
+function doPick(stageIdx,itemIdx){
+  const o=ORDERS.find(x=>x.id===currentId);
+  if(!o)return;
+  const input=document.createElement('input');
+  input.type='file';
+  input.multiple=true;
+  input.accept='image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.msg,.eml';
+  input.onchange=async ()=>{
+    if(!input.files.length){
+      toast('未选择文件','');return;
+    }
+    toast('正在保存证据...','');
+    let ok=0,fail=0;
+    for(const f of input.files){
+      const r=await uploadEvidence(o,stageIdx,itemIdx,f);
+      if(r)ok++;else fail++;
+    }
+    if(fail===0)toast('已保存 '+ok+' 个证据文件','success');
+    else toast('保存完成：成功 '+ok+' 个，失败 '+fail+' 个','error');
+    openDetail(currentId);
+    renderBoard();
+  };
+  input.click();
+}
+async function viewEvidence(stageIdx,itemIdx,index){
+  if(!currentId)return;
+  const o=ORDERS.find(x=>x.id===currentId);
+  if(!o)return;
+  const ref=evidenceList(o,stageIdx,itemIdx)[index];
+  if(!ref)return;
+  const blob=await evidenceFileBlob(o,stageIdx,itemIdx,ref);
+  if(!blob){toast('无法读取文件，可能工作目录未连接','error');return}
+  const url=URL.createObjectURL(blob);
+  // 图片/PDF 在新标签打开，其他类型直接下载
+  const name=typeof ref==='string'?ref:(ref.name||'证据文件');
+  const isImg=/^image\//.test(blob.type);
+  const isPdf=blob.type==='application/pdf';
+  if(isImg||isPdf){
+    window.open(url,'_blank');
+  }else{
+    const a=document.createElement('a');
+    a.href=url;a.download=name;a.click();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+async function removeEvidence(stageIdx,itemIdx,index){
+  if(!currentId)return;
+  const o=ORDERS.find(x=>x.id===currentId);
+  if(!o)return;
+  if(!confirm('确定删除该证据文件？'))return;
+  await deleteEvidence(o,stageIdx,itemIdx,index);
+  // 若该步骤已勾选但已无证据 → 自动取消勾选（保证数据一致性）
+  let globalIdx=0;
+  for(let i=0;i<stageIdx;i++) globalIdx+=STAGES[i].items.length;
+  globalIdx+=itemIdx;
+  if(o.checklist[globalIdx] && evidenceList(o,stageIdx,itemIdx).length===0){
+    o.checklist[globalIdx]=false;
+    const oldStatus=o.status;
+    const newStatus=calcStatusByProgress(o);
+    if(newStatus!==oldStatus){
+      o.status=newStatus;
+      toast('证据被删除，已自动取消勾选并回退状态','error');
+    }else{
+      toast('证据已删除，已自动取消勾选','success');
+    }
+    saveOrders(ORDERS);
+  }
+  openDetail(currentId);
+  renderBoard();
+}
+
+/* ============ 根据检查清单自动计算状态 ============ */
+// 阶段 → 状态映射：
+//   阶段0(订单确认) 未完成         → 待确认
+//   阶段0 完成                      → 生产中
+//   阶段1(生产准备)/阶段2(生产过程) 完成 → 生产中
+//   阶段2 完成                      → 验货中
+//   阶段3(验货与出货) 完成          → 待出货
+//   阶段4(交付与结算) 完成          → 已完成
+function stageDone(order,stageIdx){
+  let start=0;
+  for(let i=0;i<stageIdx;i++) start+=STAGES[i].items.length;
+  const end=start+STAGES[stageIdx].items.length;
+  for(let i=start;i<end;i++){ if(!order.checklist[i]) return false; }
+  return true;
+}
+function calcStatusByProgress(order){
+  ensureChecks(order);
+  // 按"最后一个连续完成的阶段"决定状态
+  let lastDone=-1;
+  for(let i=0;i<STAGES.length;i++){
+    if(stageDone(order,i)) lastDone=i; else break;
+  }
+  // 映射：
+  // lastDone=-1 → 待确认
+  // lastDone=0  → 生产中（订单确认完成，进入生产阶段）
+  // lastDone=1  → 生产中（生产准备完成）
+  // lastDone=2  → 验货中（生产过程完成）
+  // lastDone=3  → 待出货（验货与出货完成）
+  // lastDone=4  → 已完成（全部完成）
+  if(lastDone===-1) return '待确认';
+  if(lastDone<=1)   return '生产中';
+  if(lastDone===2)  return '验货中';
+  if(lastDone===3)  return '待出货';
+  return '已完成';
+}
+function editFromDetail(){
+  const o=ORDERS.find(x=>x.id===currentId);
+  closeDetail();
+  openForm(o);
+}
+function deleteCurrent(){
+  if(!currentId)return;
+  const o=ORDERS.find(x=>x.id===currentId);
+  if(!confirm('确定删除该订单？'))return;
+  // 询问是否同时删除本地文件夹
+  let alsoDeleteFolder=false;
+  if(_rootHandle && o && confirm('是否同时删除本地项目文件夹及其所有证据文件？（取消则仅从看板移除，文件夹保留）')){
+    alsoDeleteFolder=true;
+  }
+  if(alsoDeleteFolder && o && _rootHandle){
+    _rootHandle.removeEntry(folderNameFor(o),{recursive:true}).catch(e=>{
+      console.warn('删除文件夹失败',e);
+      toast('文件夹删除失败，可能需手动清理','error');
+    });
+    delete _folderCache[currentId];
+  }
+  ORDERS=ORDERS.filter(o=>o.id!==currentId);
+  saveOrders(ORDERS);
+  closeDetail();
+  renderBoard();
+  toast('订单已删除','success');
+}
+
+/* ============ 搜索 ============ */
+document.getElementById('searchInput').addEventListener('input',renderBoard);
+
+/* ============ 导入导出 ============ */
+function exportData(){
+  if(ORDERS.length===0){toast('暂无数据可导出','error');return;}
+  const blob=new Blob([JSON.stringify(ORDERS,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='外贸订单_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('已导出 '+ORDERS.length+' 条订单','success');
+}
+function importData(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data))throw new Error();
+      ORDERS=data.map(o=>{ensureChecks(o);ensureEvidence(o);return o});
+      saveOrders(ORDERS);
+      renderBoard();
+      toast('已导入 '+ORDERS.length+' 条订单','success');
+    }catch(err){toast('导入失败：文件格式错误','error');}
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+/* ============ GitHub 云同步 ============ */
+// 配置存储键
+const CLOUD_KEY='trade_cloud_config';
+// 读取云端配置
+function getCloudConfig(){
+  try{return JSON.parse(localStorage.getItem(CLOUD_KEY)||'{}')}catch{return{}}
+}
+function saveCloudConfig(cfg){
+  localStorage.setItem(CLOUD_KEY,JSON.stringify(cfg));
+}
+// 按钮状态显示
+function updateCloudBtn(){
+  const cfg=getCloudConfig();
+  const btn=document.getElementById('btnCloud');
+  if(cfg.token&&cfg.owner&&cfg.repo){
+    btn.textContent='☁️ '+cfg.owner+'/'+cfg.repo;
+    btn.style.color='#16a34a';
+    btn.style.fontWeight='600';
+  }else{
+    btn.textContent='☁️ 云同步';
+    btn.style.color='';
+    btn.style.fontWeight='';
+  }
+}
+// 主入口
+async function cloudSync(){
+  const cfg=getCloudConfig();
+  if(!cfg.token||!cfg.owner||!cfg.repo){
+    openCloudSetup();
+    return;
+  }
+  // 已配置 → 选择操作
+  const choice=confirm(
+    '当前云端：'+cfg.owner+'/'+cfg.repo+'\n\n'+
+    '点「确定」= 上传本地数据到云端（覆盖云端）\n'+
+    '点「取消」= 从云端拉取数据到本地（覆盖本地）'
+  );
+  if(choice) await cloudPush();
+  else await cloudPull();
+}
+// 配置弹窗
+function openCloudSetup(){
+  const cfg=getCloudConfig();
+  const html=`
+    <div class="modal-mask show" id="cloudMask" onclick="if(event.target.id==='cloudMask')this.remove()">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+          <h3>☁️ GitHub 云同步配置</h3>
+          <button class="modal-close" onclick="document.getElementById('cloudMask').remove()">×</button>
+        </div>
+        <div class="modal-body">
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#1e40af">
+            <b>作用：</b>把订单数据同步到你的 GitHub 仓库，电脑端和手机端共享同一份数据。<br>
+            <b>注意：</b>证据文件（图片/合同）不会同步，仅同步订单数据和勾选状态。
+          </div>
+          <div class="field">
+            <label>GitHub 用户名</label>
+            <input id="cloud_owner" placeholder="如 xiongsmart123" value="${cfg.owner||''}">
+          </div>
+          <div class="field">
+            <label>仓库名</label>
+            <input id="cloud_repo" placeholder="如 trade-board" value="${cfg.repo||'trade-board'}">
+          </div>
+          <div class="field">
+            <label>Personal Access Token (PAT)</label>
+            <input id="cloud_token" type="password" placeholder="ghp_xxxxxxxx..." value="${cfg.token||''}">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5">
+              获取方式：GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token → 勾选 <b>repo</b> 权限 → 生成后复制
+            </div>
+          </div>
+          <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:10px;margin-top:12px;font-size:12px;color:#92400e">
+            ⚠️ Token 保存在浏览器 LocalStorage，仅当前设备可见。请勿在公共电脑上配置。
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="document.getElementById('cloudMask').remove()">取消</button>
+          <button class="btn btn-ghost" onclick="testCloudConnection()" style="color:var(--blue-600)">🔌 测试连接</button>
+          <button class="btn btn-primary" onclick="saveCloudConfigFromForm()">保存配置</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+function saveCloudConfigFromForm(){
+  const owner=document.getElementById('cloud_owner').value.trim();
+  const repo=document.getElementById('cloud_repo').value.trim();
+  const token=document.getElementById('cloud_token').value.trim();
+  if(!owner||!repo||!token){toast('请填写完整','error');return}
+  saveCloudConfig({owner,repo,token});
+  updateCloudBtn();
+  document.getElementById('cloudMask').remove();
+  toast('云同步配置已保存，再次点击「☁️ 云同步」开始同步','success');
+}
+// 测试连接：诊断 token/仓库/权限
+async function testCloudConnection(){
+  const owner=document.getElementById('cloud_owner').value.trim();
+  const repo=document.getElementById('cloud_repo').value.trim();
+  const token=document.getElementById('cloud_token').value.trim();
+  if(!owner||!repo||!token){toast('请填写完整','error');return}
+  toast('正在测试连接...','');
+  try{
+    // 1. 校验 token 本身
+    const userR=await fetch('https://api.github.com/user',{
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github+json'}
+    });
+    if(userR.status===401){toast('Token 无效或已过期','error');return}
+    if(userR.status===403){toast('Token 触发频率限制，稍后再试','error');return}
+    if(!userR.ok){toast('Token 校验失败：HTTP '+userR.status,'error');return}
+    const userInfo=await userR.json();
+    if(userInfo.login.toLowerCase()!==owner.toLowerCase()){
+      toast('Token 所属用户 ('+userInfo.login+') 与填写的用户名 ('+owner+') 不一致','error');return;
+    }
+    // 2. 校验仓库
+    const repoR=await fetch(`https://api.github.com/repos/${owner}/${repo}`,{
+      headers:{'Authorization':'token '+token,'Accept':'application/vnd.github+json'}
+    });
+    if(repoR.status===404){toast('仓库不存在：'+owner+'/'+repo+'，或 Token 无 repo 权限','error');return}
+    if(!repoR.ok){toast('仓库访问失败：HTTP '+repoR.status,'error');return}
+    const repoInfo=await repoR.json();
+    // 3. 校验推送权限
+    if(!repoInfo.permissions||!repoInfo.permissions.push){
+      toast('Token 没有 push 权限，请重新生成 Token 并勾选 repo','error');return;
+    }
+    toast('✓ 连接正常！'+owner+'/'+repo+'（'+repoInfo.default_branch+'分支，可推送）','success');
+  }catch(err){
+    toast('测试失败：'+err.message,'error');
+  }
+}
+// 上传本地数据到云端
+async function cloudPush(){
+  const cfg=getCloudConfig();
+  if(!cfg.token){toast('请先配置云同步','error');return}
+  if(ORDERS.length===0){toast('本地无数据可上传','error');return}
+  toast('正在上传到 GitHub...','');
+  try{
+    // 先校验 token 和仓库是否可访问
+    const testR=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`,{
+      headers:{'Authorization':'token '+cfg.token,'Accept':'application/vnd.github+json'}
+    });
+    if(testR.status===401){toast('Token 无效或已过期，请重新生成','error');return}
+    if(testR.status===404){toast('仓库不存在或 Token 无权访问。请检查用户名/仓库名拼写','error');return}
+    if(!testR.ok){toast('仓库访问失败：HTTP '+testR.status,'error');return}
+    const repoInfo=await testR.json();
+    const branch=repoInfo.default_branch||'main';
+
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(ORDERS,null,2))));
+    // 先获取 sha（如果文件存在）
+    let sha=null;
+    try{
+      const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/orders.json?ref=${branch}`,{
+        headers:{'Authorization':'token '+cfg.token,'Accept':'application/vnd.github+json'}
+      });
+      if(r.ok){const j=await r.json();sha=j.sha}
+    }catch{}
+    const body={message:'Sync orders '+new Date().toISOString(),content,branch};
+    if(sha)body.sha=sha;
+    const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/orders.json`,{
+      method:'PUT',
+      headers:{'Authorization':'token '+cfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){
+      const e=await r.json().catch(()=>({message:'未知错误'}));
+      throw new Error(e.message||('HTTP '+r.status));
+    }
+    toast('已上传 '+ORDERS.length+' 条订单到云端','success');
+  }catch(err){
+    toast('上传失败：'+err.message,'error');
+  }
+}
+// 从云端拉取数据到本地
+async function cloudPull(){
+  const cfg=getCloudConfig();
+  if(!cfg.token){toast('请先配置云同步','error');return}
+  toast('正在从 GitHub 拉取...','');
+  try{
+    const r=await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/orders.json`,{
+      headers:{'Authorization':'token '+cfg.token,'Accept':'application/vnd.github+json'}
+    });
+    if(r.status===404){toast('云端暂无数据，请先上传','error');return}
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    const content=JSON.parse(decodeURIComponent(escape(atob(j.content))));
+    if(!Array.isArray(content))throw new Error('数据格式错误');
+    if(ORDERS.length>0){
+      if(!confirm('本地已有 '+ORDERS.length+' 条订单，云端有 '+content.length+' 条。\n确定用云端数据覆盖本地吗？')){toast('已取消','');return}
+    }
+    ORDERS=content.map(o=>{ensureChecks(o);ensureEvidence(o);return o});
+    saveOrders(ORDERS);
+    renderBoard();
+    toast('已从云端拉取 '+ORDERS.length+' 条订单','success');
+  }catch(err){
+    toast('拉取失败：'+err.message,'error');
+  }
+}
+// 启动时更新按钮状态
+updateCloudBtn();
+
+/* ============ 初始化 ============ */
+// 首次使用注入示例数据
+if(ORDERS.length===0 && !localStorage.getItem('trade_orders_v1')){
+  const today=new Date();
+  const fmt=d=>d.toISOString().slice(0,10);
+  const addDays=(n)=>{const d=new Date(today);d.setDate(d.getDate()+n);return fmt(d);};
+  ORDERS=[
+    {id:genId(),orderno:'SO-2026-001',customer:'Acme Trading Co.',product:'SKU-A100 x500',
+     amount:18500,terms:'FOB',orderDate:addDays(-30),deliveryDate:addDays(5),
+     payment:'T/T 30%定金+70%尾款',status:'生产中',remark:'客户要求中性包装',remarkColor:'blue',
+     checklist:STAGES.flatMap((st,si)=>st.items.map((_,i)=>si<2||(si===2&&i===0)))},
+    {id:genId(),orderno:'SO-2026-002',customer:'Bluewave Ltd.',product:'SKU-B200 x200',
+     amount:6200,terms:'CIF',orderDate:addDays(-20),deliveryDate:addDays(-2),
+     payment:'L/C 即期',status:'验货中',remark:'需第三方SGS验货',remarkColor:'red',
+     checklist:STAGES.flatMap((st,si)=>st.items.map((_,i)=>si<3))},
+    {id:genId(),orderno:'SO-2026-003',customer:'Nordic Home AB',product:'SKU-C300 x1000',
+     amount:42800,terms:'EXW',orderDate:addDays(-10),deliveryDate:addDays(25),
+     payment:'T/T 100%预付',status:'待确认',remark:'',remarkColor:'none',
+     checklist:STAGES.flatMap(st=>st.items.map(()=>false))}
+  ];
+  ORDERS.forEach(o=>{ensureChecks(o);ensureEvidence(o)});
+  saveOrders(ORDERS);
+}
+renderBoard();
+
+// 点击遮罩关闭
+document.getElementById('formMask').addEventListener('click',e=>{if(e.target.id==='formMask')closeForm()});
+document.getElementById('detailMask').addEventListener('click',e=>{if(e.target.id==='detailMask')closeDetail()});
+// ESC 关闭
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeForm();closeDetail()}});
+
+/* ============ PWA：Service Worker 离线缓存 ============ */
+// 通过 Blob URL 内嵌 SW，避免额外文件。注意：SW 在 file:// 协议下不生效，
+// 必须通过 HTTPS 部署（GitHub Pages / Netlify / Vercel / Cloudflare Pages 均可）。
+const SW_CODE=`
+const CACHE='trade-board-v1';
+self.addEventListener('install',e=>{
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c=>c.add('./')).catch(()=>{}));
+});
+self.addEventListener('activate',e=>{e.waitUntil(self.clients.claim())});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  e.respondWith(
+    caches.match(e.request).then(hit=>hit||fetch(e.request).then(resp=>{
+      // 缓存新请求（同源）
+      if(resp.ok && new URL(e.request.url).origin===location.origin){
+        const cp=resp.clone();
+        caches.open(CACHE).then(c=>c.put(e.request,cp)).catch(()=>{});
+      }
+      return resp;
+    }).catch(()=>hit||caches.match('./')))
+  );
+});
+`;
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  const blob=new Blob([SW_CODE],{type:'text/javascript'});
+  const swUrl=URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl,{scope:'./'}).then(reg=>{
+    console.log('SW 注册成功，离线可用');
+  }).catch(err=>console.warn('SW 注册失败：',err));
+}
+
+/* ============ PWA：安装提示（Android Chrome 弹窗） ============ */
+let _deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _deferredPrompt=e;
+  // 显示自定义安装按钮（仅在未安装且符合条件时出现）
+  showInstallButton();
+});
+function showInstallButton(){
+  if(document.getElementById('installBtn'))return;
+  const btn=document.createElement('button');
+  btn.id='installBtn';
+  btn.className='btn btn-primary';
+  btn.style.cssText='position:fixed;right:16px;bottom:max(20px,env(safe-area-inset-bottom));z-index:60;box-shadow:0 4px 14px rgba(30,64,175,.4);animation:pop .3s';
+  btn.textContent='📲 安装到桌面';
+  btn.onclick=async ()=>{
+    if(!_deferredPrompt)return;
+    _deferredPrompt.prompt();
+    const {outcome}=_deferredPrompt.userChoice;
+    if(outcome==='accepted')toast('安装中，请按系统提示完成','success');
+    _deferredPrompt=null;
+    btn.remove();
+  };
+  document.body.appendChild(btn);
+  // 5秒后自动消失（若用户没点）
+  setTimeout(()=>{if(btn.parentNode)btn.remove()},5000);
+}
+window.addEventListener('appinstalled',()=>{
+  toast('已安装，可从桌面离线启动','success');
+  const b=document.getElementById('installBtn');if(b)b.remove();
+});
+</script>
+</body>
+</html>
